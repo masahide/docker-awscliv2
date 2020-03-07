@@ -1,0 +1,71 @@
+name: Push Docker Image
+
+on:
+  push:
+    branches:
+    - master
+    paths-ignore:
+    - '**.md'
+    schedule:
+    - cron:  '30 0 * * *'
+
+
+jobs:
+  push:
+    runs-on: ubuntu-18.04
+    steps:
+
+
+    - name: checkout
+      uses: actions/checkout@v2
+
+    - name: get latest version
+      run: |
+        curl -V
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        LATEST_VER=$(./aws/dist/aws --version|sed 's/[^ ]*\(2[0-9.]\+\).*/\1/')
+        echo $LATEST_VER
+        echo "::set-env name=LATEST_VER::${LATEST_VER}"
+        echo "::set-env name=VER::$(cat latest)"
+
+    - name: build
+      if: env.LATEST_VER != env.VER
+      run: |
+        gpg --import awscliv2-pgp-public-key-file
+        curl -o awscliv2.sig https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip.sig
+        gpg --verify awscliv2.sig awscliv2.zip
+        echo ${{ env.LATEST_VER }} >latest
+        sed 's/%AWSCLI_VER%/v${{ env.LATEST_VER }}/' Dockerfile.template > Dockerfile
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git commit -m "Add changes" -a
+
+    - name: push master
+      if: env.LATEST_VER != env.VER
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create Release
+      if: env.LATEST_VER != env.VER
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ env.LATEST_VER }}
+        release_name: Release v${{ env.LATEST_VER }}
+        draft: false
+        prerelease: false
+    - name: Upload Release Asset
+      if: env.LATEST_VER != env.VER
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./awscliv2.zip
+        asset_name: awscliv2.zip
+        asset_content_type: application/zip
