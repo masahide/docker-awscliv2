@@ -14,5 +14,5 @@ docker run -it -v $HOME:/root --rm masahide/awscliv2 configure
 docker run -v $HOME:/root --rm masahide/awscliv2 configure list
 
 # aws s3 ls
-docker run -v $HOME:/root --rm masahide/awscliv2 configure list
+docker run -v $HOME:/root --rm masahide/awscliv2 s3 ls s3://bucketname/...
 ```
