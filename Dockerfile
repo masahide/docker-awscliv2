@@ -1,7 +1,7 @@
 FROM bitnami/minideb:buster
 
 RUN install_packages groff-base unzip curl ca-certificates \
-        && curl -sL "https://github.com/masahide/docker-awscliv2/releases/download/v20/awscliv2.zip" -o "awscliv2.zip" \
+        && curl -sL "https://github.com/masahide/docker-awscliv2/releases/download/v21/awscliv2.zip" -o "awscliv2.zip" \
         && unzip awscliv2.zip \
         && ./aws/install \
         && rm -rf ./aws
